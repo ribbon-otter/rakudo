@@ -2024,11 +2024,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.obsvar('%!')>
     }
 
-    token special_variable:sym<$~> {
-        <sym> <?before \h* '='>
-        <.obsvar('$~')>
-    }
-
     token special_variable:sym<$`> {
         <sym>  <?before \s | ',' | <.terminator> >
         <.obsvar('$`')>
@@ -2040,40 +2035,19 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token special_variable:sym<$#> {
-        <sym> [<identifier>]?
+        <sym> <identifier>
         {}
-        <.obsvar('$#', $<identifier> && ~$<identifier>)>
+        <.obsvar('$#', ~$<identifier>)>
     }
 
     token special_variable:sym<$$> {
         <sym> \W
         <.obsvar('$$')>
     }
-    token special_variable:sym<$%> {
-        <sym> <?before \h* '='>
-        <.obsvar('$%')>
-    }
-
-    # TODO: $^X and other "caret" variables
-
-    token special_variable:sym<$^> {
-        <sym> <?before \h* '='>
-        <.obsvar('$^')>
-    }
 
     token special_variable:sym<$&> {
         <sym> <?before \s | ',' | <.terminator> >
         <.obsvar('$&')>
-    }
-
-    token special_variable:sym<$*> {
-        <sym> <?before \h* '='>
-        <.obsvar('$*')>
-    }
-
-    token special_variable:sym<$=> {
-        <sym> <?before \h+ '='>
-        <.obsvar('$=')>
     }
 
     token special_variable:sym<@+> {
@@ -2139,11 +2113,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token special_variable:sym<$|> {
         <sym> <?before \h* '='>
         <.obsvar('$|')>
-    }
-
-    token special_variable:sym<$:> {
-        <sym> <?before \h* '='>
-        <.obsvar('$:')>
     }
 
     token special_variable:sym<$;> {
@@ -2761,9 +2730,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]?
 
         [ <.ws> <trait>+ ]?
-        [ <.ws> :my $*HAS_SELF :=
-              $*SCOPE eq 'has' ?? nqp::null !! nqp::getlexdyn('$*HAS_SELF')
-          ; <post_constraint('var')>+ ]?
+        [ <.ws> <post_constraint('var')>+ ]?
     }
 
     proto token routine_declarator { <...> }
@@ -3185,6 +3152,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     rule post_constraint($*CONSTRAINT_USAGE) {
         :my $*IN_DECL := '';
+        :my $*HAS_SELF := $*CONSTRAINT_USAGE eq 'var' && $*SCOPE eq 'has'
+            ?? nqp::null !! nqp::getlexdyn('$*HAS_SELF');
         :dba('constraint')
         [
         | '[' ~ ']' <signature>
